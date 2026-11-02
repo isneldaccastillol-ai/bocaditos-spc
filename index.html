@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPC Interactive App — Bocaditos S.A.</title>
+    <!-- Chart.js para gráficos dinámicos -->
+    <script src="[suspicious link removed]"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        header p {
+            margin: 4px 0 0 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .lang-btn {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .lang-btn:hover { border-color: var(--accent-blue); }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .kpi-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-value { font-size: 1.8rem; font-weight: bold; margin: 6px 0; }
+        .kpi-status { font-size: 0.8rem; color: var(--accent-green); }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+        .chart-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .table-container { max-height: 320px; overflow-y: auto; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #0f172a; position: sticky; top: 0; }
+
+        input[type="number"] {
+            width: 55px;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .btn-recalc {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1 id="txt-title">Bocaditos S.A. — Control Estadístico de Procesos (SPC)</h1>
+            <p id="txt-subtitle">Empaquetado Artesanal de Corazón de Res (30g) | Código 205 UNA</p>
+        </div>
+        <button class="lang-btn" id="btn-lang" onclick="toggleLanguage()">🌐 English</button>
+    </header>
+
+    <!-- TARJETAS KPI -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-title" id="lbl-kpi1">Gran Media Peso ($\bar{\bar{X}}$)</div>
+            <div class="kpi-value" id="val-xbar">30.05 g</div>
+            <div class="kpi-status" id="st-kpi1">✓ Meta: 30,0g ± 1,5g</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title" id="lbl-kpi2">Capacidad Real ($C_{pk}$)</div>
+            <div class="kpi-value" style="color: #10b981;" id="val-cpk">1.50</div>
+            <div class="kpi-status" id="st-kpi2">✓ Proceso Capaz ($C_{pk} \ge 1,33$)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title" id="lbl-kpi3">Hermeticidad ($\bar{p}$)</div>
+            <div class="kpi-value" id="val-p">1.46%</div>
+            <div class="kpi-status" id="st-kpi3">✓ Bajo $LCS_p = 9,50\%$</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title" id="lbl-kpi4">Ahorro Anual PAF</div>
+            <div class="kpi-value">$500 USD</div>
+            <div class="kpi-status" id="st-kpi4">↓ Reducción 52% Fallas</div>
+        </div>
+    </div>
+
+    <!-- PANEL PRINCIPAL -->
+    <div class="dashboard-grid">
+        <div>
+            <div class="chart-card">
+                <h3><span id="title-chart-x">Gráfico $\bar{X}$ (Peso Promedio 30g)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 30.48g | LCI = 29.62g</span></h3>
+                <canvas id="xbarChart" height="110"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3><span id="title-chart-p">Gráfico $p$ (Fugas en Hermeticidad)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 9.50%</span></h3>
+                <canvas id="pChart" height="110"></canvas>
+            </div>
+        </div>
+
+        <div>
+            <div class="chart-card">
+                <h3><span id="title-table">Edición de Muestras</span> 
+                    <button class="btn-recalc" onclick="recalcular()" id="btn-recalc">Recalcular</button>
+                </h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th id="th-lote">Lote</th>
+                                <th id="th-media">Media ($\bar{X}$)</th>
+                                <th id="th-rango">Rango ($R$)</th>
+                                <th id="th-fugas">Fugas ($p$)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3 id="title-chart-paf">Distribución Costos PAF</h3>
+                <canvas id="pafChart" height="170"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const subgrupos = Array.from({length: 24}, (_, i) => i + 1);
+        let datosXbar = [30.1, 29.9, 30.2, 30.0, 30.1, 29.8, 30.3, 30.0, 29.9, 30.1, 30.2, 30.0, 30.1, 29.9, 30.2, 30.1, 30.0, 29.8, 30.3, 30.1, 30.0, 29.9, 30.2, 30.1];
+        let datosR = [0.7, 0.8, 0.6, 0.7, 0.9, 0.7, 0.8, 0.6, 0.7, 0.8, 0.9, 0.7, 0.6, 0.8, 0.7, 0.8, 0.7, 0.9, 0.6, 0.8, 0.7, 0.8, 0.7, 0.8];
+        let datosP = [0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0];
+
+        // LENGUAJE BILINGUE
+        const i18n = {
+            es: {
+                btnLang: "🌐 English",
+                title: "Bocaditos S.A. — Control Estadístico de Procesos (SPC)",
+                subtitle: "Empaquetado Artesanal de Corazón de Res (30g) | Código 205 UNA",
+                kpi1: "Gran Media Peso (X-bar)", kpi2: "Capacidad Real (Cpk)", kpi3: "Hermeticidad (p)", kpi4: "Ahorro Anual PAF",
+                st1: "✓ Meta: 30,0g ± 1,5g", st2: "✓ Proceso Capaz (Cpk ≥ 1,33)", st3: "✓ Bajo LCS = 9,50%", st4: "↓ Reducción 52% Fallas",
+                chartX: "Gráfico X-bar (Peso Promedio 30g)", chartP: "Gráfico p (Fugas en Hermeticidad)", tableTitle: "Edición de Muestras",
+                btnRecalc: "Recalcular", thLote: "Lote", thMedia: "Media (X-bar)", thRango: "Rango (R)", thFugas: "Fugas (p)", chartPaf: "Distribución Costos PAF"
+            },
+            en: {
+                btnLang: "🌐 Español",
+                title: "Bocaditos S.A. — Statistical Process Control (SPC)",
+                subtitle: "Handmade Beef Heart Packaging (30g) | Course Code 205 UNA",
+                kpi1: "Grand Mean Weight (X-bar)", kpi2: "Real Capability (Cpk)", kpi3: "Tightness (p)", kpi4: "Annual PAF Savings",
+                st1: "✓ Target: 30.0g ± 1.5g", st2: "✓ Capable Process (Cpk ≥ 1.33)", st3: "✓ Below UCL = 9.50%", st4: "↓ 52% Defect Reduction",
+                chartX: "X-bar Chart (Average Weight 30g)", chartP: "p Chart (Leak Defects)", tableTitle: "Sample Data Entry",
+                btnRecalc: "Recalculate", thLote: "Lot", thMedia: "Mean (X-bar)", thRango: "Range (R)", thFugas: "Leaks (p)", chartPaf: "PAF Quality Cost Distribution"
+            }
+        };
+
+        let lang = "es";
+
+        // TABLA
+        const tbody = document.getElementById("table-body");
+        subgrupos.forEach((sub, i) => {
+            tbody.innerHTML += `<tr>
+                <td><b>${sub}</b></td>
+                <td><input type="number" step="0.1" value="${datosXbar[i]}" id="x_${i}"></td>
+                <td><input type="number" step="0.1" value="${datosR[i]}" id="r_${i}"></td>
+                <td><input type="number" value="${datosP[i]}" id="p_${i}"></td>
+            </tr>`;
+        });
+
+        // GRAFICOS CHART.JS
+        const ctxX = document.getElementById('xbarChart').getContext('2d');
+        let xChart = new Chart(ctxX, {
+            type: 'line',
+            data: {
+                labels: subgrupos,
+                datasets: [
+                    { label: 'Media (g)', data: datosXbar, borderColor: '#3b82f6', tension: 0.2 },
+                    { label: 'LCS (30.48g)', data: Array(24).fill(30.48), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0 },
+                    { label: 'LCI (29.62g)', data: Array(24).fill(29.62), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true, scales: { y: { min: 29.0, max: 31.0 } } }
+        });
+
+        const ctxP = document.getElementById('pChart').getContext('2d');
+        let pChart = new Chart(ctxP, {
+            type: 'line',
+            data: {
+                labels: subgrupos,
+                datasets: [
+                    { label: '% Fugas', data: datosP.map(v => (v/20)*100), borderColor: '#f59e0b', tension: 0.2 },
+                    { label: 'LCS (9.50%)', data: Array(24).fill(9.50), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true }
+        });
+
+        const ctxPaf = document.getElementById('pafChart').getContext('2d');
+        new Chart(ctxPaf, {
+            type: 'doughnut',
+            data: {
+                labels: ['Fallas Int. (36.7%)', 'Fallas Ext. (31.1%)', 'Evaluación (19.8%)', 'Prevención (12.4%)'],
+                datasets: [{ data: [650, 550, 350, 220], backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'] }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } }
+        });
+
+        function toggleLanguage() {
+            lang = lang === "es" ? "en" : "es";
+            const t = i18n[lang];
+            document.getElementById("btn-lang").innerText = t.btnLang;
+            document.getElementById("txt-title").innerText = t.title;
+            document.getElementById("txt-subtitle").innerText = t.subtitle;
+            document.getElementById("lbl-kpi1").innerText = t.kpi1;
+            document.getElementById("lbl-kpi2").innerText = t.kpi2;
+            document.getElementById("lbl-kpi3").innerText = t.kpi3;
+            document.getElementById("lbl-kpi4").innerText = t.kpi4;
+            document.getElementById("st-kpi1").innerText = t.st1;
+            document.getElementById("st-kpi2").innerText = t.st2;
+            document.getElementById("st-kpi3").innerText = t.st3;
+            document.getElementById("st-kpi4").innerText = t.st4;
+            document.getElementById("title-chart-x").innerText = t.chartX;
+            document.getElementById("title-chart-p").innerText = t.chartP;
+            document.getElementById("title-table").innerText = t.tableTitle;
+            document.getElementById("btn-recalc").innerText = t.btnRecalc;
+            document.getElementById("th-lote").innerText = t.thLote;
+            document.getElementById("th-media").innerText = t.thMedia;
+            document.getElementById("th-rango").innerText = t.thRango;
+            document.getElementById("th-fugas").innerText = t.thFugas;
+            document.getElementById("title-chart-paf").innerText = t.chartPaf;
+        }
+
+        function recalcular() {
+            let sumX = 0, sumR = 0, totalP = 0;
+            for(let i = 0; i < 24; i++) {
+                datosXbar[i] = parseFloat(document.getElementById(`x_${i}`).value);
+                datosR[i] = parseFloat(document.getElementById(`r_${i}`).value);
+                datosP[i] = parseInt(document.getElementById(`p_${i}`).value);
+                sumX += datosXbar[i]; sumR += datosR[i]; totalP += datosP[i];
+            }
+            let meanX = sumX / 24, meanR = sumR / 24;
+            let sigma = meanR / 2.326;
+            let cpk = Math.min((31.5 - meanX)/(3*sigma), (meanX - 28.5)/(3*sigma));
+            let pBar = (totalP / 480) * 100;
+
+            document.getElementById("val-xbar").innerText = meanX.toFixed(2) + " g";
+            document.getElementById("val-cpk").innerText = cpk.toFixed(2);
+            document.getElementById("val-p").innerText = pBar.toFixed(2) + "%";
+
+            xChart.data.datasets[0].data = datosXbar; xChart.update();
+            pChart.data.datasets[0].data = datosP.map(v => (v/20)*100); pChart.update();
+        }
+    </script>
+</body>
+</html>
