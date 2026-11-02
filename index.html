@@ -98,6 +98,7 @@
             font-size: 1rem;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
         .table-container { max-height: 320px; overflow-y: auto; }
@@ -125,6 +126,7 @@
             cursor: pointer;
             font-weight: 600;
         }
+        .btn-recalc:hover { background-color: #2563eb; }
     </style>
 </head>
 <body>
@@ -140,19 +142,19 @@
     <!-- TARJETAS KPI -->
     <div class="kpi-grid">
         <div class="kpi-card">
-            <div class="kpi-title" id="lbl-kpi1">Gran Media Peso ($\bar{\bar{X}}$)</div>
+            <div class="kpi-title" id="lbl-kpi1">Gran Media Peso (X-bar)</div>
             <div class="kpi-value" id="val-xbar">30.05 g</div>
             <div class="kpi-status" id="st-kpi1">✓ Meta: 30,0g ± 1,5g</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-title" id="lbl-kpi2">Capacidad Real ($C_{pk}$)</div>
+            <div class="kpi-title" id="lbl-kpi2">Capacidad Real (Cpk)</div>
             <div class="kpi-value" style="color: #10b981;" id="val-cpk">1.50</div>
-            <div class="kpi-status" id="st-kpi2">✓ Proceso Capaz ($C_{pk} \ge 1,33$)</div>
+            <div class="kpi-status" id="st-kpi2">✓ Proceso Capaz (Cpk ≥ 1,33)</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-title" id="lbl-kpi3">Hermeticidad ($\bar{p}$)</div>
+            <div class="kpi-title" id="lbl-kpi3">Hermeticidad (p)</div>
             <div class="kpi-value" id="val-p">1.46%</div>
-            <div class="kpi-status" id="st-kpi3">✓ Bajo $LCS_p = 9,50\%$</div>
+            <div class="kpi-status" id="st-kpi3">✓ Bajo LCS = 9,50%</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title" id="lbl-kpi4">Ahorro Anual PAF</div>
@@ -165,11 +167,11 @@
     <div class="dashboard-grid">
         <div>
             <div class="chart-card">
-                <h3><span id="title-chart-x">Gráfico $\bar{X}$ (Peso Promedio 30g)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 30.48g | LCI = 29.62g</span></h3>
+                <h3><span id="title-chart-x">Gráfico X-bar (Peso Promedio 30g)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 30.48g | LCI = 29.62g</span></h3>
                 <canvas id="xbarChart" height="110"></canvas>
             </div>
             <div class="chart-card">
-                <h3><span id="title-chart-p">Gráfico $p$ (Fugas en Hermeticidad)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 9.50%</span></h3>
+                <h3><span id="title-chart-p">Gráfico p (Fugas en Hermeticidad)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 9.50%</span></h3>
                 <canvas id="pChart" height="110"></canvas>
             </div>
         </div>
@@ -184,9 +186,9 @@
                         <thead>
                             <tr>
                                 <th id="th-lote">Lote</th>
-                                <th id="th-media">Media ($\bar{X}$)</th>
-                                <th id="th-rango">Rango ($R$)</th>
-                                <th id="th-fugas">Fugas ($p$)</th>
+                                <th id="th-media">Media (X-bar)</th>
+                                <th id="th-rango">Rango (R)</th>
+                                <th id="th-fugas">Fugas (p)</th>
                             </tr>
                         </thead>
                         <tbody id="table-body"></tbody>
@@ -204,7 +206,7 @@
         const subgrupos = Array.from({length: 24}, (_, i) => i + 1);
         let datosXbar = [30.1, 29.9, 30.2, 30.0, 30.1, 29.8, 30.3, 30.0, 29.9, 30.1, 30.2, 30.0, 30.1, 29.9, 30.2, 30.1, 30.0, 29.8, 30.3, 30.1, 30.0, 29.9, 30.2, 30.1];
         let datosR = [0.7, 0.8, 0.6, 0.7, 0.9, 0.7, 0.8, 0.6, 0.7, 0.8, 0.9, 0.7, 0.6, 0.8, 0.7, 0.8, 0.7, 0.9, 0.6, 0.8, 0.7, 0.8, 0.7, 0.8];
-        let datosP = [0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0];
+        let datosP = [1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0];
 
         // LENGUAJE BILINGUE
         const i18n = {
@@ -230,7 +232,7 @@
 
         let lang = "es";
 
-        // TABLA
+        // POBLAR TABLA
         const tbody = document.getElementById("table-body");
         subgrupos.forEach((sub, i) => {
             tbody.innerHTML += `<tr>
@@ -248,9 +250,9 @@
             data: {
                 labels: subgrupos,
                 datasets: [
-                    { label: 'Media (g)', data: datosXbar, borderColor: '#3b82f6', tension: 0.2 },
-                    { label: 'LCS (30.48g)', data: Array(24).fill(30.48), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0 },
-                    { label: 'LCI (29.62g)', data: Array(24).fill(29.62), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0 }
+                    { label: 'Media (g)', data: datosXbar, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.2 },
+                    { label: 'LCS (30.48g)', data: Array(24).fill(30.48), borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0 },
+                    { label: 'LCI (29.62g)', data: Array(24).fill(29.62), borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0 }
                 ]
             },
             options: { responsive: true, scales: { y: { min: 29.0, max: 31.0 } } }
@@ -262,8 +264,8 @@
             data: {
                 labels: subgrupos,
                 datasets: [
-                    { label: '% Fugas', data: datosP.map(v => (v/20)*100), borderColor: '#f59e0b', tension: 0.2 },
-                    { label: 'LCS (9.50%)', data: Array(24).fill(9.50), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0 }
+                    { label: '% Fugas', data: datosP.map(v => (v/20)*100), borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.2 },
+                    { label: 'LCS (9.50%)', data: Array(24).fill(9.50), borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0 }
                 ]
             },
             options: { responsive: true }
@@ -274,7 +276,7 @@
             type: 'doughnut',
             data: {
                 labels: ['Fallas Int. (36.7%)', 'Fallas Ext. (31.1%)', 'Evaluación (19.8%)', 'Prevención (12.4%)'],
-                datasets: [{ data: [650, 550, 350, 220], backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'] }]
+                datasets: [{ data: [36.7, 31.1, 19.8, 12.4], backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'] }]
             },
             options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } }
         });
@@ -307,9 +309,9 @@
         function recalcular() {
             let sumX = 0, sumR = 0, totalP = 0;
             for(let i = 0; i < 24; i++) {
-                datosXbar[i] = parseFloat(document.getElementById(`x_${i}`).value);
-                datosR[i] = parseFloat(document.getElementById(`r_${i}`).value);
-                datosP[i] = parseInt(document.getElementById(`p_${i}`).value);
+                datosXbar[i] = parseFloat(document.getElementById(`x_${i}`).value) || 0;
+                datosR[i] = parseFloat(document.getElementById(`r_${i}`).value) || 0;
+                datosP[i] = parseInt(document.getElementById(`p_${i}`).value) || 0;
                 sumX += datosXbar[i]; sumR += datosR[i]; totalP += datosP[i];
             }
             let meanX = sumX / 24, meanR = sumR / 24;
