@@ -1,334 +1,625 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- =================================================================== -->
+    <!-- BLOQUE 1: METADATOS Y TÍTULO DE LA APLICACIÓN                       -->
+    <!-- Define la codificación de caracteres y la adaptación a móviles/PC   -->
+    <!-- =================================================================== -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPC Interactive App — Bocaditos S.A.</title>
-    <!-- Libreria Oficial de Chart.js para renderizar los graficos -->
-    <script src="[suspicious link removed]"></script>
+    <title>Bocaditos S.A. — Simulador SPC & Control de Calidad</title>
+
+    <!-- =================================================================== -->
+    <!-- BLOQUE 2: ESTILOS VISUALES (CSS)                                    -->
+    <!-- Define la paleta de colores oscuros (Power BI), fuentes y tarjetas  -->
+    <!-- =================================================================== -->
     <style>
+        /* Variables globales de color para mantener coherencia en todo el diseño */
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --accent-green: #10b981;
-            --accent-blue: #3b82f6;
-            --accent-red: #ef4444;
-            --accent-yellow: #f59e0b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
+            --bg-main: #0b1120;        /* Azul noche profundo de fondo */
+            --card-bg: #1e293b;        /* Gris azulado para las tarjetas */
+            --accent-blue: #38bdf8;    /* Azul cian para datos y enlaces */
+            --accent-green: #10b981;   /* Verde para estado de proceso capaz (Cpk) */
+            --accent-red: #ef4444;     /* Rojo para límites de control (LCS/LCI) */
+            --accent-amber: #f59e0b;   /* Ámbar para advertencias y PCC */
+            --text-primary: #f8fafc;   /* Blanco roto para textos principales */
+            --text-secondary: #94a3b8; /* Gris claro para subtítulos y leyendas */
+            --border-ui: #334155;      /* Color de los bordes tenues */
         }
 
+        /* Ajustes básicos de márgenes y tipografía */
+        * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
+            background-color: var(--bg-main);
+            color: var(--text-primary);
             margin: 0;
-            padding: 20px;
+            padding: 16px;
         }
 
+        /* Encabezado superior con título y botones de acción */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-ui);
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 1.4rem;
-        }
+        header h1 { margin: 0; font-size: 1.35rem; }
+        header p { margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.85rem; }
 
-        header p {
-            margin: 4px 0 0 0;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .lang-btn {
+        /* Estilo base para los botones interactivos */
+        .btn-ui {
             background-color: var(--card-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-ui);
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
+            transition: 0.2s ease;
+        }
+        .btn-ui:hover { border-color: var(--accent-blue); }
+
+        /* ================================================================= */
+        /* ESTILOS DEL FLUJO DE PROCESO (STEPPER DE 7 ETAPAS)                */
+        /* ================================================================= */
+        .stepper-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-ui);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
         }
 
-        .lang-btn:hover { border-color: var(--accent-blue); }
+        .stepper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
 
+        .stepper-title { font-size: 0.95rem; font-weight: bold; color: var(--accent-blue); }
+
+        /* Cuadrícula adaptable para las 7 estaciones */
+        .stepper-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        /* Cada casilla individual del flujo */
+        .step-node {
+            background-color: #0f172a;
+            border: 1px solid var(--border-ui);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        /* Resaltado de la etapa actualmente seleccionada o activa */
+        .step-node.active {
+            border-color: var(--accent-blue);
+            background-color: rgba(56, 189, 248, 0.15);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .step-num { font-size: 0.7rem; color: var(--text-secondary); font-weight: bold; }
+        .step-name { font-size: 0.8rem; font-weight: 600; margin: 3px 0; }
+        
+        /* Distintivo para señalar los 4 Puntos Críticos de Control */
+        .badge-pcc {
+            display: inline-block;
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--accent-amber);
+            border: 1px solid var(--accent-amber);
+        }
+
+        /* Cuadro de texto explicativo inferior de la etapa seleccionada */
+        .info-etapa {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #0f172a;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        /* ================================================================= */
+        /* TARJETAS DE INDICADORES CLAVE (KPIs)                              */
+        /* ================================================================= */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
         .kpi-card {
             background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-ui);
             border-radius: 10px;
-            padding: 16px;
+            padding: 14px;
         }
 
-        .kpi-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
-        .kpi-value { font-size: 1.8rem; font-weight: bold; margin: 6px 0; }
-        .kpi-status { font-size: 0.8rem; color: var(--accent-green); }
+        .kpi-title { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; }
+        .kpi-value { font-size: 1.6rem; font-weight: bold; margin: 4px 0; }
+        .kpi-status { font-size: 0.75rem; color: var(--accent-green); }
 
+        /* ================================================================= */
+        /* ESTRUCTURA DEL DASHBOARD PRINCIPAL (GRÁFICOS + TABLAS)            */
+        /* ================================================================= */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 2fr 1.2fr;
-            gap: 20px;
+            grid-template-columns: 2fr 1.3fr;
+            gap: 16px;
         }
 
+        /* En pantallas pequeñas (móviles), pasa a una sola columna */
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
 
         .chart-card {
             background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-ui);
             border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
         }
 
         .chart-card h3 {
             margin-top: 0;
-            font-size: 1rem;
+            font-size: 0.95rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .table-container { max-height: 320px; overflow-y: auto; }
-
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { padding: 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
-        th { background-color: #0f172a; position: sticky; top: 0; }
-
-        input[type="number"] {
-            width: 55px;
+        /* Lienzo Canvas HTML5 donde se dibujan los gráficos de forma nativa */
+        canvas {
+            width: 100%;
             background-color: #0f172a;
-            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            border: 1px solid var(--border-ui);
+        }
+
+        /* Tabla desplazable con casillas de entrada numérica */
+        .table-container { max-height: 280px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th, td { padding: 6px; text-align: center; border-bottom: 1px solid var(--border-ui); }
+        th { background-color: #0f172a; position: sticky; top: 0; color: var(--text-secondary); }
+        input[type="number"] {
+            width: 52px;
+            background-color: #0f172a;
+            border: 1px solid var(--border-ui);
             color: #fff;
-            padding: 4px;
+            padding: 3px;
             border-radius: 4px;
             text-align: center;
         }
-
-        .btn-recalc {
-            background-color: var(--accent-blue);
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .btn-recalc:hover { background-color: #2563eb; }
     </style>
 </head>
 <body>
 
+    <!-- =================================================================== -->
+    <!-- BLOQUE 3: ENCABEZADO Y CONTROLES PRINCIPALES                        -->
+    <!-- Muestra título del estudio UNA y botones de simulación e idioma     -->
+    <!-- =================================================================== -->
     <header>
         <div>
-            <h1 id="txt-title">Bocaditos S.A. — Control Estadístico de Procesos (SPC)</h1>
-            <p id="txt-subtitle">Empaquetado Artesanal de Corazón de Res (30g) | Código 205 UNA</p>
+            <h1 id="txt-title">Bocaditos S.A. — Simulador Interactivo SPC</h1>
+            <p id="txt-subtitle">Empaquetado Artesanal de Corazón de Res (30g) | Calidad UNA (Código 205)</p>
         </div>
-        <button class="lang-btn" id="btn-lang" onclick="toggleLanguage()">🌐 English</button>
+        <div style="display:flex; gap:8px;">
+            <!-- Botón que activa la animación paso a paso del lote -->
+            <button class="btn-ui" onclick="simularLote()" id="btn-simular">▶️ Simular Recorrido de Lote</button>
+            <!-- Botón que conmuta el idioma entre Español e Inglés -->
+            <button class="btn-ui" onclick="toggleLanguage()" id="btn-lang">🌐 English</button>
+        </div>
     </header>
 
-    <!-- TARJETAS KPI -->
+    <!-- =================================================================== -->
+    <!-- BLOQUE 4: FLUJO DE LAS 7 ETAPAS CON SUS 4 PUNTOS CRÍTICOS (PCC)     -->
+    <!-- Permite hacer clic en cualquier etapa para ver su ficha técnica      -->
+    <!-- =================================================================== -->
+    <div class="stepper-card">
+        <div class="stepper-header">
+            <span class="stepper-title" id="txt-stepper-title">Flujo del Proceso y Puntos Críticos de Control (PCC)</span>
+            <span id="badge-simulando" style="font-size:0.75rem; color:var(--accent-amber); display:none;">● Simulando lote en producción...</span>
+        </div>
+        <div class="stepper-container" id="stepper-container">
+            <!-- Etapa 1 -->
+            <div class="step-node active" onclick="seleccionarEtapa(0)" id="step-0">
+                <div class="step-num">01</div>
+                <div class="step-name">Enfriado</div>
+            </div>
+            <!-- Etapa 2 con PCC 1 -->
+            <div class="step-node" onclick="seleccionarEtapa(1)" id="step-1">
+                <div class="step-num">02</div>
+                <div class="step-name">Humedad</div>
+                <span class="badge-pcc">PCC 1</span>
+            </div>
+            <!-- Etapa 3 con PCC 2 -->
+            <div class="step-node" onclick="seleccionarEtapa(2)" id="step-2">
+                <div class="step-num">03</div>
+                <div class="step-name">Pesaje 30g</div>
+                <span class="badge-pcc">PCC 2</span>
+            </div>
+            <!-- Etapa 4 -->
+            <div class="step-node" onclick="seleccionarEtapa(3)" id="step-3">
+                <div class="step-num">04</div>
+                <div class="step-name">Llenado Kraft</div>
+            </div>
+            <!-- Etapa 5 -->
+            <div class="step-node" onclick="seleccionarEtapa(4)" id="step-4">
+                <div class="step-num">05</div>
+                <div class="step-name">Sellado Térmico</div>
+            </div>
+            <!-- Etapa 6 con PCC 3 -->
+            <div class="step-node" onclick="seleccionarEtapa(5)" id="step-5">
+                <div class="step-num">06</div>
+                <div class="step-name">Hermeticidad</div>
+                <span class="badge-pcc">PCC 3</span>
+            </div>
+            <!-- Etapa 7 con PCC 4 -->
+            <div class="step-node" onclick="seleccionarEtapa(6)" id="step-6">
+                <div class="step-num">07</div>
+                <div class="step-name">Etiquetado</div>
+                <span class="badge-pcc">PCC 4</span>
+            </div>
+        </div>
+        <!-- Cuadro descriptivo dinámico -->
+        <div class="info-etapa" id="info-etapa-txt">
+            <b>Etapa 01: Enfriado del Snack.</b> Reposo a temperatura ambiente para evitar condensación interna de vapor dentro de la bolsa Kraft.
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- BLOQUE 5: TARJETAS SUPERIORES DE RENDIMIENTO (KPIS DEL ESTUDIO)     -->
+    <!-- Muestran los 4 resultados centrales: X̄̄, Cpk, p̄ y Ahorro PAF       -->
+    <!-- =================================================================== -->
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-title" id="lbl-kpi1">Gran Media Peso (X-bar)</div>
-            <div class="kpi-value" id="val-xbar">30.05 g</div>
+            <div class="kpi-value" id="val-xbar" style="color:var(--accent-blue)">30.05 g</div>
             <div class="kpi-status" id="st-kpi1">✓ Meta: 30,0g ± 1,5g</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title" id="lbl-kpi2">Capacidad Real (Cpk)</div>
-            <div class="kpi-value" style="color: #10b981;" id="val-cpk">1.50</div>
+            <div class="kpi-value" id="val-cpk" style="color:var(--accent-green)">1.50</div>
             <div class="kpi-status" id="st-kpi2">✓ Proceso Capaz (Cpk ≥ 1,33)</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-title" id="lbl-kpi3">Hermeticidad (p)</div>
-            <div class="kpi-value" id="val-p">1.46%</div>
+            <div class="kpi-title" id="lbl-kpi3">Hermeticidad (p-bar)</div>
+            <div class="kpi-value" id="val-p" style="color:var(--accent-amber)">1.46%</div>
             <div class="kpi-status" id="st-kpi3">✓ Bajo LCS = 9,50%</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title" id="lbl-kpi4">Ahorro Anual PAF</div>
             <div class="kpi-value">$500 USD</div>
-            <div class="kpi-status" id="st-kpi4">↓ Reducción 52% Fallas</div>
+            <div class="kpi-status" id="st-kpi4">↓ -52% Costo de Fallas</div>
         </div>
     </div>
 
-    <!-- PANEL PRINCIPAL CON GRAFICOS -->
+    <!-- =================================================================== -->
+    <!-- BLOQUE 6: ZONA CENTRAL DE GRÁFICOS Y TABLA DE EDICIÓN              -->
+    <!-- Columna Izq: Gráficos X-bar y p | Columna Der: Tabla y Donut PAF    -->
+    <!-- =================================================================== -->
     <div class="dashboard-grid">
+        <!-- Columna Izquierda: Cartas de Control Estadístico -->
         <div>
+            <!-- Gráfico X-bar (Pesaje por Variables) -->
             <div class="chart-card">
-                <h3><span id="title-chart-x">Gráfico X-bar (Peso Promedio 30g)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 30.48g | LCI = 29.62g</span></h3>
-                <canvas id="xbarChart" height="110"></canvas>
+                <h3><span id="title-chart-x">Gráfico X-bar (Control de Peso Neto 30g)</span> <span style="font-size:0.75rem; color:var(--text-secondary)">LCS=30.48g | LCI=29.62g</span></h3>
+                <canvas id="canvasXbar" height="150"></canvas>
             </div>
+            <!-- Gráfico p (Hermeticidad por Atributos) -->
             <div class="chart-card">
-                <h3><span id="title-chart-p">Gráfico p (Fugas en Hermeticidad)</span> <span style="color: var(--text-muted); font-size: 0.8rem;">LCS = 9.50%</span></h3>
-                <canvas id="pChart" height="110"></canvas>
+                <h3><span id="title-chart-p">Gráfico p (Hermeticidad / Fugas de Aire)</span> <span style="font-size:0.75rem; color:var(--text-secondary)">LCS=9.50%</span></h3>
+                <canvas id="canvasP" height="150"></canvas>
             </div>
         </div>
 
+        <!-- Columna Derecha: Edición de Datos y Modelo de Costos -->
         <div>
+            <!-- Tabla editable de los 24 lotes -->
             <div class="chart-card">
-                <h3><span id="title-table">Edición de Muestras</span> 
-                    <button class="btn-recalc" onclick="recalcular()" id="btn-recalc">Recalcular</button>
+                <h3><span id="title-table">Muestras de Producción (24 Lotes)</span>
+                    <button class="btn-ui" style="padding:4px 10px; font-size:0.8rem;" onclick="recalcular()">🔄 Recalcular</button>
                 </h3>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th id="th-lote">Lote</th>
-                                <th id="th-media">Media (X-bar)</th>
-                                <th id="th-rango">Rango (R)</th>
-                                <th id="th-fugas">Fugas (p)</th>
+                                <th>Lote</th>
+                                <th>Media (X)</th>
+                                <th>Rango (R)</th>
+                                <th>Fugas (p)</th>
                             </tr>
                         </thead>
-                        <tbody id="table-body"></tbody>
+                        <tbody id="table-body">
+                            <!-- Filas generadas automáticamente por JavaScript -->
+                        </tbody>
                     </table>
                 </div>
             </div>
+            <!-- Gráfico Donut de Costos de Calidad PAF -->
             <div class="chart-card">
-                <h3 id="title-chart-paf">Distribución Costos PAF</h3>
-                <canvas id="pafChart" height="170"></canvas>
+                <h3 id="title-chart-paf">Costos de Calidad PAF ($1.270 USD)</h3>
+                <canvas id="canvasPaf" height="150"></canvas>
             </div>
         </div>
     </div>
 
+    <!-- =================================================================== -->
+    <!-- BLOQUE 7: LÓGICA DE PROGRAMACIÓN EN JAVASCRIPT (MOTOR DE LA APP)    -->
+    <!-- Cálculos matemáticos, renderizado Canvas y conmutador bilingüe       -->
+    <!-- =================================================================== -->
     <script>
-        const subgrupos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        let datosXbar = [30.1, 29.9, 30.2, 30.0, 30.1, 29.8, 30.3, 30.0, 29.9, 30.1, 30.2, 30.0, 30.1, 29.9, 30.2, 30.1, 30.0, 29.8, 30.3, 30.1, 30.0, 29.9, 30.2, 30.1];
+        // ---------------------------------------------------------------------
+        // 7.1. DATOS ESTADÍSTICOS MAESTROS (24 LOTES REVISADOS TRAS EXCLUSIÓN)
+        // ---------------------------------------------------------------------
+        const lotes = Array.from({length: 24}, (_, i) => i + 1);
+        
+        // Medias muestrales del peso neto en gramos (n=5 por lote)
+        let datosX = [30.1, 29.9, 30.2, 30.0, 30.1, 29.8, 30.3, 30.0, 29.9, 30.1, 30.2, 30.0, 30.1, 29.9, 30.2, 30.1, 30.0, 29.8, 30.3, 30.1, 30.0, 29.9, 30.2, 30.1];
+        
+        // Rangos muestrales del peso neto en gramos (R = Max - Min)
         let datosR = [0.7, 0.8, 0.6, 0.7, 0.9, 0.7, 0.8, 0.6, 0.7, 0.8, 0.9, 0.7, 0.6, 0.8, 0.7, 0.8, 0.7, 0.9, 0.6, 0.8, 0.7, 0.8, 0.7, 0.8];
+        
+        // Cantidad de bolsas con fuga de aire en prueba de agua (n=20 bolsas por lote)
         let datosP = [0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0];
 
-        // DICCIONARIO BILINGÜE
-        const i18n = {
-            es: {
-                btnLang: "🌐 English",
-                title: "Bocaditos S.A. — Control Estadístico de Procesos (SPC)",
-                subtitle: "Empaquetado Artesanal de Corazón de Res (30g) | Código 205 UNA",
-                kpi1: "Gran Media Peso (X-bar)", kpi2: "Capacidad Real (Cpk)", kpi3: "Hermeticidad (p)", kpi4: "Ahorro Anual PAF",
-                st1: "✓ Meta: 30,0g ± 1,5g", st2: "✓ Proceso Capaz (Cpk ≥ 1,33)", st3: "✓ Bajo LCS = 9,50%", st4: "↓ Reducción 52% Fallas",
-                chartX: "Gráfico X-bar (Peso Promedio 30g)", chartP: "Gráfico p (Fugas en Hermeticidad)", tableTitle: "Edición de Muestras",
-                btnRecalc: "Recalcular", thLote: "Lote", thMedia: "Media (X-bar)", thRango: "Rango (R)", thFugas: "Fugas (p)", chartPaf: "Distribución Costos PAF"
-            },
-            en: {
-                btnLang: "🌐 Español",
-                title: "Bocaditos S.A. — Statistical Process Control (SPC)",
-                subtitle: "Handmade Beef Heart Packaging (30g) | Course Code 205 UNA",
-                kpi1: "Grand Mean Weight (X-bar)", kpi2: "Real Capability (Cpk)", kpi3: "Tightness (p)", kpi4: "Annual PAF Savings",
-                st1: "✓ Target: 30.0g ± 1.5g", st2: "✓ Capable Process (Cpk ≥ 1.33)", st3: "✓ Below UCL = 9.50%", st4: "↓ 52% Defect Reduction",
-                chartX: "X-bar Chart (Average Weight 30g)", chartP: "p Chart (Leak Defects)", tableTitle: "Sample Data Entry",
-                btnRecalc: "Recalculate", thLote: "Lot", thMedia: "Mean (X-bar)", thRango: "Range (R)", thFugas: "Leaks (p)", chartPaf: "PAF Quality Cost Distribution"
-            }
-        };
+        // Textos descriptivos para cada una de las 7 etapas del proceso
+        const etapasInfo = [
+            "Etapa 01: Enfriado del Snack. Reposo a temperatura ambiente para evitar condensación interna de vapor dentro de la bolsa Kraft.",
+            "Etapa 02: Humedad Residual (PCC 1). Balanza halógena a 105°C (muestra 5g picada). Parámetro crítico: 8,0% a 10,0% de humedad.",
+            "Etapa 03: Pesaje Manual (PCC 2). Balanza gramera digital (0,1g). Especificación: 30,0g ± 1,5g (28,5g a 31,5g). Monitoreado con gráfico X-bar.",
+            "Etapa 04: Llenado de Bolsa Kraft. Vertido manual de trozos de corazón en bolsa Stand-Up Pouch con ventana, cuidando el borde superior.",
+            "Etapa 05: Sellado Térmico por Impulso. Aplicación de calor uniforme y banda de teflón limpia para asegurar un termosellado sin arrugas.",
+            "Etapa 06: Hermeticidad de Sellado (PCC 3). Muestra de n=20 bolsas sumergidas en agua con leve presión manual. Cero burbujas permitidas (LCS=9,5%).",
+            "Etapa 07: Etiquetado y Trazabilidad (PCC 4). Verificación visual al 100%: etiqueta frontal alineada, número de lote y fecha de vencimiento."
+        ];
 
-        let lang = "es";
-
-        // POBLAR TABLA HTML
-        const tbody = document.getElementById("table-body");
-        subgrupos.forEach((sub, i) => {
+        // ---------------------------------------------------------------------
+        // 7.2. POBLAR DINÁMICAMENTE LA TABLA DE EDICIÓN EN EL HTML
+        // ---------------------------------------------------------------------
+        const tbody = document.getElementById('table-body');
+        lotes.forEach((lote, i) => {
             tbody.innerHTML += `<tr>
-                <td><b>${sub}</b></td>
-                <td><input type="number" step="0.1" value="${datosXbar[i]}" id="x_${i}"></td>
+                <td><b>${lote}</b></td>
+                <td><input type="number" step="0.1" value="${datosX[i]}" id="x_${i}"></td>
                 <td><input type="number" step="0.1" value="${datosR[i]}" id="r_${i}"></td>
                 <td><input type="number" value="${datosP[i]}" id="p_${i}"></td>
             </tr>`;
         });
 
-        // INICIALIZAR GRAFICOS
-        const ctxX = document.getElementById('xbarChart').getContext('2d');
-        let xChart = new Chart(ctxX, {
-            type: 'line',
-            data: {
-                labels: subgrupos,
-                datasets: [
-                    { label: 'Media (g)', data: datosXbar, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.2 },
-                    { label: 'LCS (30.48g)', data: Array(24).fill(30.48), borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0 },
-                    { label: 'LCI (29.62g)', data: Array(24).fill(29.62), borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0 }
-                ]
-            },
-            options: { responsive: true, scales: { y: { min: 29.0, max: 31.0 } } }
-        });
+        // ---------------------------------------------------------------------
+        // 7.3. MOTOR DE DIBUJO EN CANVAS HTML5 (SIN DEPENDENCIAS EXTERNAS)
+        // Dibuja ejes, líneas de control discontinuas (LCS/LCI) y la curva de datos
+        // ---------------------------------------------------------------------
+        function dibujarGraficoLinea(canvasId, datos, lcs, lci, yMin, yMax, colorLinea, etiqueta) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Ajuste responsivo al ancho del contenedor
+            const w = canvas.width = canvas.parentElement.clientWidth;
+            const h = canvas.height = 150;
+            const padX = 40, padY = 24;
 
-        const ctxP = document.getElementById('pChart').getContext('2d');
-        let pChart = new Chart(ctxP, {
-            type: 'line',
-            data: {
-                labels: subgrupos,
-                datasets: [
-                    { label: '% Fugas', data: datosP.map(v => (v/20)*100), borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.2 },
-                    { label: 'LCS (9.50%)', data: Array(24).fill(9.50), borderColor: '#ef4444', borderDash: [5, 5], pointRadius: 0 }
-                ]
-            },
-            options: { responsive: true }
-        });
+            // Limpieza previa del lienzo
+            ctx.clearRect(0, 0, w, h);
 
-        const ctxPaf = document.getElementById('pafChart').getContext('2d');
-        new Chart(ctxPaf, {
-            type: 'doughnut',
-            data: {
-                labels: ['Fallas Int. (36.7%)', 'Fallas Ext. (31.1%)', 'Evaluación (19.8%)', 'Prevención (12.4%)'],
-                datasets: [{ data: [36.7, 31.1, 19.8, 12.4], backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'] }]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } }
-        });
+            // Dibujo de los ejes coordenados (Gris tenue)
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padX, padY);
+            ctx.lineTo(padX, h - padY);
+            ctx.lineTo(w - 15, h - padY);
+            ctx.stroke();
 
-        function toggleLanguage() {
-            lang = lang === "es" ? "en" : "es";
-            const t = i18n[lang];
-            document.getElementById("btn-lang").innerText = t.btnLang;
-            document.getElementById("txt-title").innerText = t.title;
-            document.getElementById("txt-subtitle").innerText = t.subtitle;
-            document.getElementById("lbl-kpi1").innerText = t.kpi1;
-            document.getElementById("lbl-kpi2").innerText = t.kpi2;
-            document.getElementById("lbl-kpi3").innerText = t.kpi3;
-            document.getElementById("lbl-kpi4").innerText = t.kpi4;
-            document.getElementById("st-kpi1").innerText = t.st1;
-            document.getElementById("st-kpi2").innerText = t.st2;
-            document.getElementById("st-kpi3").innerText = t.st3;
-            document.getElementById("st-kpi4").innerText = t.st4;
-            document.getElementById("title-chart-x").innerText = t.chartX;
-            document.getElementById("title-chart-p").innerText = t.chartP;
-            document.getElementById("title-table").innerText = t.tableTitle;
-            document.getElementById("btn-recalc").innerText = t.btnRecalc;
-            document.getElementById("th-lote").innerText = t.thLote;
-            document.getElementById("th-media").innerText = t.thMedia;
-            document.getElementById("th-rango").innerText = t.thRango;
-            document.getElementById("th-fugas").innerText = t.thFugas;
-            document.getElementById("title-chart-paf").innerText = t.chartPaf;
+            // Factores de escala para proyectar los valores en píxeles de pantalla
+            const scaleX = (w - padX - 25) / (datos.length - 1);
+            const scaleY = (h - padY * 2) / (yMax - yMin);
+
+            // Configuración para Líneas de Control Rojas (Discontinuas)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+
+            // Dibuja el Límite de Control Superior (LCS)
+            const yLCS = h - padY - (lcs - yMin) * scaleY;
+            ctx.beginPath();
+            ctx.moveTo(padX, yLCS); ctx.lineTo(w - 15, yLCS);
+            ctx.stroke();
+
+            // Dibuja el Límite de Control Inferior (LCI) si existe
+            if (lci !== null) {
+                const yLCI = h - padY - (lci - yMin) * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(padX, yLCI); ctx.lineTo(w - 15, yLCI);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]); // Restablece a línea continua para los datos
+
+            // Trazo continuo de los puntos de datos (Azul o Ámbar)
+            ctx.strokeStyle = colorLinea;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            datos.forEach((v, i) => {
+                const x = padX + i * scaleX;
+                const y = h - padY - (v - yMin) * scaleY;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // Dibuja pequeños círculos en cada punto de muestra
+            ctx.fillStyle = colorLinea;
+            datos.forEach((v, i) => {
+                const x = padX + i * scaleX;
+                const y = h - padY - (v - yMin) * scaleY;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Leyendas textuales dentro del gráfico
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(etiqueta, padX + 5, padY - 8);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText(`LCS: ${lcs}`, w - 70, yLCS - 4);
         }
 
+        // ---------------------------------------------------------------------
+        // 7.4. MOTOR DE DIBUJO DEL GRÁFICO CIRCULAR / DONUT (COSTOS PAF)
+        // ---------------------------------------------------------------------
+        function dibujarDonutPAF() {
+            const canvas = document.getElementById('canvasPaf');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.parentElement.clientWidth;
+            const h = canvas.height = 150;
+            const cx = w / 3, cy = h / 2, r = 50, rInt = 28;
+
+            // Datos del modelo PAF propuesto para el taller ($1.270 USD)
+            const datos = [
+                { nombre: "F. Internas (36.7%)", valor: 36.7, color: "#ef4444" },
+                { nombre: "F. Externas (31.1%)", valor: 31.1, color: "#f59e0b" },
+                { nombre: "Evaluación (19.8%)", valor: 19.8, color: "#38bdf8" },
+                { nombre: "Prevención (12.4%)", valor: 12.4, color: "#10b981" }
+            ];
+
+            let startAngle = 0;
+            datos.forEach(d => {
+                const slice = (d.valor / 100) * (Math.PI * 2);
+                ctx.fillStyle = d.color;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+                ctx.arc(cx, cy, rInt, startAngle + slice, startAngle, true);
+                ctx.fill();
+                startAngle += slice;
+            });
+
+            // Leyenda explicativa al lado derecho del donut
+            ctx.font = '11px sans-serif';
+            datos.forEach((d, idx) => {
+                ctx.fillStyle = d.color;
+                ctx.fillRect(w / 1.7, 24 + idx * 26, 10, 10);
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillText(d.nombre, w / 1.7 + 16, 33 + idx * 26);
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        // 7.5. FUNCIÓN CENTRAL DE RENDERIZADO
+        // ---------------------------------------------------------------------
+        function renderizarTodo() {
+            // Renderiza el gráfico X-bar con límites revisados (30.48g y 29.62g)
+            dibujarGraficoLinea('canvasXbar', datosX, 30.48, 29.62, 29.0, 31.0, '#38bdf8', 'Media Peso (g)');
+            
+            // Convierte conteo de fugas en porcentaje (Fugas / 20 * 100)
+            const datosPPorcentaje = datosP.map(v => (v / 20) * 100);
+            dibujarGraficoLinea('canvasP', datosPPorcentaje, 9.50, null, 0, 15, '#f59e0b', '% Fugas por Lote');
+            
+            // Renderiza la distribución de costos de calidad
+            dibujarDonutPAF();
+        }
+
+        // ---------------------------------------------------------------------
+        // 7.6. SELECCIÓN MANUAL DE ETAPAS DEL PROCESO
+        // ---------------------------------------------------------------------
+        function seleccionarEtapa(idx) {
+            for (let i = 0; i < 7; i++) {
+                document.getElementById(`step-${i}`).classList.remove('active');
+            }
+            document.getElementById(`step-${idx}`).classList.add('active');
+            document.getElementById('info-etapa-txt').innerHTML = etapasInfo[idx];
+        }
+
+        // ---------------------------------------------------------------------
+        // 7.7. SIMULACIÓN AUTOMÁTICA DEL RECORRIDO DEL LOTE EN PLANTA
+        // ---------------------------------------------------------------------
+        function simularLote() {
+            let actual = 0;
+            const badge = document.getElementById('badge-simulando');
+            badge.style.display = 'inline';
+            const intervalo = setInterval(() => {
+                seleccionarEtapa(actual);
+                actual++;
+                if (actual >= 7) {
+                    clearInterval(intervalo);
+                    setTimeout(() => { badge.style.display = 'none'; }, 2000);
+                }
+            }, 1200); // Avanza una estación cada 1,2 segundos
+        }
+
+        // ---------------------------------------------------------------------
+        // 7.8. RECÁLCULO ESTADÍSTICO EN VIVO (AL EDITAR TABLA)
+        // ---------------------------------------------------------------------
         function recalcular() {
             let sumX = 0, sumR = 0, totalP = 0;
-            for(let i = 0; i < 24; i++) {
-                datosXbar[i] = parseFloat(document.getElementById(`x_${i}`).value) || 0;
+            
+            // Lectura de los valores ingresados por el usuario en los campos de texto
+            for (let i = 0; i < 24; i++) {
+                datosX[i] = parseFloat(document.getElementById(`x_${i}`).value) || 0;
                 datosR[i] = parseFloat(document.getElementById(`r_${i}`).value) || 0;
                 datosP[i] = parseInt(document.getElementById(`p_${i}`).value) || 0;
-                sumX += datosXbar[i]; sumR += datosR[i]; totalP += datosP[i];
+                sumX += datosX[i]; sumR += datosR[i]; totalP += datosP[i];
             }
-            let meanX = sumX / 24, meanR = sumR / 24;
-            let sigma = meanR / 2.326;
-            let cpk = Math.min((31.5 - meanX)/(3*sigma), (meanX - 28.5)/(3*sigma));
-            let pBar = (totalP / 480) * 100;
+            
+            // Cálculos según fórmulas de Dale H. Besterfield (n=5, d2=2.326)
+            const meanX = sumX / 24, meanR = sumR / 24;
+            const sigma = meanR / 2.326;
+            
+            // Especificaciones: LSL = 28.5g, USL = 31.5g
+            const cpk = Math.min((31.5 - meanX) / (3 * sigma), (meanX - 28.5) / (3 * sigma));
+            const pBar = (totalP / (24 * 20)) * 100;
 
-            document.getElementById("val-xbar").innerText = meanX.toFixed(2) + " g";
-            document.getElementById("val-cpk").innerText = cpk.toFixed(2);
-            document.getElementById("val-p").innerText = pBar.toFixed(2) + "%";
+            // Actualización de textos en pantalla
+            document.getElementById('val-xbar').innerText = meanX.toFixed(2) + ' g';
+            document.getElementById('val-cpk').innerText = cpk.toFixed(2);
+            document.getElementById('val-p').innerText = pBar.toFixed(2) + '%';
 
-            xChart.data.datasets[0].data = datosXbar; 
-            xChart.update();
-
-            pChart.data.datasets[0].data = datosP.map(v => (v/20)*100); 
-            pChart.update();
+            // Redibuja los gráficos con los nuevos datos
+            renderizarTodo();
         }
+
+        // ---------------------------------------------------------------------
+        // 7.9. SELECTOR BILINGÜE (ESPAÑOL / INGLÉS)
+        // ---------------------------------------------------------------------
+        let lang = 'es';
+        function toggleLanguage() {
+            lang = lang === 'es' ? 'en' : 'es';
+            const es = lang === 'es';
+            document.getElementById('btn-lang').innerText = es ? '🌐 English' : '🌐 Español';
+            document.getElementById('txt-title').innerText = es ? 'Bocaditos S.A. — Simulador Interactivo SPC' : 'Bocaditos S.A. — Interactive SPC Simulator';
+            document.getElementById('btn-simular').innerText = es ? '▶️ Simular Recorrido de Lote' : '▶️ Simulate Batch Workflow';
+            document.getElementById('txt-stepper-title').innerText = es ? 'Flujo del Proceso y Puntos Críticos de Control (PCC)' : 'Process Flow & Critical Control Points (CCP)';
+            document.getElementById('lbl-kpi1').innerText = es ? 'Gran Media Peso (X-bar)' : 'Grand Mean Weight (X-bar)';
+            document.getElementById('lbl-kpi2').innerText = es ? 'Capacidad Real (Cpk)' : 'Process Capability (Cpk)';
+            document.getElementById('lbl-kpi3').innerText = es ? 'Hermeticidad (p-bar)' : 'Seal Tightness (p-bar)';
+            document.getElementById('lbl-kpi4').innerText = es ? 'Ahorro Anual PAF' : 'PAF Annual Savings';
+        }
+
+        // Ejecutar el renderizado automático al cargar la ventana o cambiar su tamaño
+        window.onload = renderizarTodo;
+        window.onresize = renderizarTodo;
     </script>
 </body>
 </html>
